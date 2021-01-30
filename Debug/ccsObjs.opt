@@ -1,0 +1,1 @@
+"./main.obj" "./tm4c1294ncpdt_startup_ccs.obj" "./Peripherals/I2C.obj" "./Peripherals/SerialPort.obj" "../tm4c1294ncpdt.cmd" -llibc.a -l"C:/ti/tivaware_c_series_2_1_4_178/driverlib/ccs/Debug/driverlib.lib" 
