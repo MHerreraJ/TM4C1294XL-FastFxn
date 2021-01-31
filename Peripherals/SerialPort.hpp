@@ -32,6 +32,9 @@ class SerialPort{
         SerialPort();
         SerialPort(uint32_t, uint8_t=0);
 
+        void init(){
+
+        }
         void open();
         void close();
 

@@ -13,4 +13,9 @@
 #include <stdint.h>
 
 
+class I2CManager{
+
+};
+
+
 #endif /* PERIPHERALS_I2C_HPP_ */

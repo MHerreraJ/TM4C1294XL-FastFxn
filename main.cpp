@@ -72,9 +72,8 @@ int main(void){
         //Serial.printf("%d\t%h\t%b\r\n", num, num, num);
         //Serial.printf("%d\t%h\t%b\r\n", -num, -num, -num);
         //Serial.printf("%u\t%uh\t%ub\r\n\r\n", -num, -num, -num);
-        Serial.readline(txtBuffer,255);
-        Serial.print(txtBuffer);
-        Serial4.print(txtBuffer);
+
+        Serial4.print(Serial.read());
         num++;
     }
 }
