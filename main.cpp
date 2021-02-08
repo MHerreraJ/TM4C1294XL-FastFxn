@@ -1,14 +1,8 @@
 #include <Peripherals/SerialPort.hpp>
+#include <Peripherals/I2C.hpp>
 #include "inc/tm4c1294ncpdt.h"
 #include <stdint.h>
 
-#define EXT_OSC_FREQ ((uint32_t)25000000)
-
-
-
-void UARTEcho(){
-
-}
 
 void init(){
     //Set Alternative Clock Source for GPT, SSI and UART = PIOSC (16 MHz)
@@ -29,11 +23,14 @@ void configureTimer(){
     TIMER0_CTL_R = 0x00; //Disable Timer A and B
     TIMER0_CFG_R = 0x00; //32 bit timer
     TIMER0_TAMR_R = 0x02;//Periodic Mode
-    TIMER0_TAILR_R = 2000000; //Clk = 16Mhz -> 0.5s = 8x10e6 count
+    TIMER0_TAILR_R = 8000000; //Clk = 16Mhz -> 0.5s = 8x10e6 count
     TIMER0_IMR_R = 0x01; //Timer A TimeOut Interrupt Mask
     NVIC_EN0_R |= 1 << 19;
     TIMER0_CTL_R |= 0x01; //Enable Timer0
 }
+
+int request = 0;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,6 +39,7 @@ void Timer0A_INTERRUPT(){
     if((TIMER0_RIS_R & 0x01) != 0x00){ //Timeout Event Interrupt
         GPIO_PORTN_DATA_R ^= 0x02;
         TIMER0_ICR_R |= 0x01; //Clear RTC Interrupt
+        request = 1;
     }
 }
 #ifdef __cplusplus
@@ -49,31 +47,26 @@ void Timer0A_INTERRUPT(){
 #endif
 
 
+#define I2C_TEST_ADDRESS    0x08
+
 int main(void){
-    //uint32_t i=0;
     init();
     configureTimer();
 
-    SerialPort Serial(9600);
-    SerialPort Serial4(9600, 4); //PA2->RX PA3->TX
+    SerialPort Serial(115200); //PA0, PA1
+    I2C I2C0(100000, I2C_I2C0, I2C_MASTER); //PB2 (SCL), PB3
+
     char txtBuffer[255];
-    int num = 0;
+    uint8_t num = 0;
+
+    char rx;
 
     while(1){
-        /*GPIO_PORTN_DATA_R ^= 0x02; //Toggle PN1*/
-        //Serial.println("Hola Mundo");
+        //Test Serial (UART0)
+        Serial.printf("Hola %s, tienes %d años, en hex = %x\r%c", "Manuel", num, num, '\n');
+        request=0;
+        while(request == 0);
 
-        //Serial.print(Serial.readline(txtBuffer,255)); //UART Echo
-        //Serial.printf("%d, %d\r\n", num, -num);
-        //Serial.print(num);
-        //Serial.print(num, SERIAL_INTEGER_BINARY);
-        //Serial.print(num, SERIAL_INTEGER_BINARY);
-        //Serial.println("");
-        //Serial.printf("%d\t%h\t%b\r\n", num, num, num);
-        //Serial.printf("%d\t%h\t%b\r\n", -num, -num, -num);
-        //Serial.printf("%u\t%uh\t%ub\r\n\r\n", -num, -num, -num);
-
-        Serial4.print(Serial.read());
         num++;
     }
 }

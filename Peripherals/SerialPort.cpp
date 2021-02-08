@@ -7,29 +7,30 @@
  */
 
 #include <stdio.h>
-
+#include <stdarg.h>
 #include <../inc/tm4c1294ncpdt.h>
 #include <Peripherals/Board.hpp>
 #include <Peripherals/SerialPort.hpp>
 
 
-static const uint32_t GPIO_PORT_BASE = 0x40058000;
-static const uint32_t UART_BASE_REG = 0x4000C000;
 static const uint8_t UART_PORT_OFF[] = {0, 1, 0, 0, 0, 2, 13, 2}; //GPIO Base offset
 static const uint8_t UART_RXIO_B[] = {0, 0, 6, 4, 2, 6, 0, 4}; //RXIO Bit, TX = RXIO + 1
 
-/* Default SerialPort constructor
- * UART0 Selected, at 9600 bauds*/
+/** Default SerialPort constructor
+ *
+ * UART0 Selected, at 9600 bauds
+ */
 SerialPort::SerialPort(){
     this->UART = 0;
     this->baud = 9600;
     open();
 }
 
-/* SerialPort Constructor
- * \param baudrate is the speed at which UART will work
- * \param uart is the uart module to use (0 to 7)
- * */
+/** SerialPort Constructor
+ *
+ * @param baudrate is the speed at which UART will work
+ * @param uart is the uart module to use (0 to 7)
+ */
 
 SerialPort::SerialPort(uint32_t baudrate, uint8_t uart){
    this->UART = uart;
@@ -38,210 +39,10 @@ SerialPort::SerialPort(uint32_t baudrate, uint8_t uart){
 }
 
 
-/* Print formatted integer
- * \param i is the integer to print
- * \param format are the flags for printing
- *    FORMAT OUTPUT (1..0 bits)
- *      - SERIAL_INTEGER_DECIMAL    = 0x0
- *      - SERIAL_INTEGER_BINARY     = 0x1
- *      - SERIAL_INTEGER_OCTAL      = 0x2
- *      - SERIAL_INTEGER_HEX        = 0x3
- *    INT TYPE (2 bit)
- *      - SERIAL_INTEGER_SIGNED     = 0x0
- *      - SERIAL_INTEGER_UNSIGNED   = 0x1
- * */
-void SerialPort::print(int i, uint8_t format){
-    if(!assertValidUART()) return;
-    union{int i; uint32_t ui;} num;
-    num.i = i;
-
-    if(format & SERIAL_INTEGER_UNSIGNED){
-        switch(format & 0x03){
-            case SERIAL_INTEGER_DECIMAL:{
-                sprintf(internalBuffer, "%u", num.ui);
-            }break;
-            case SERIAL_INTEGER_BINARY:{
-                if(num.i == 0x00){
-                    print("0000");
-                    return;
-                }
-                int lastBit = 32;
-                int bitCount;
-                while((num.ui & 0x80000000) == 0x00){
-                    num.ui <<= 1;
-                    lastBit--;
-                }
-
-                bitCount = lastBit;
-                if(lastBit%4 != 0){
-                    bitCount +=  (4-lastBit%4);
-                }
-
-                for(;lastBit!=bitCount;bitCount--){
-                    print('0');
-                }
-
-                while(lastBit>0){
-                    print(((num.i & 0x80000000) == 0x00) ? '0':'1');
-                    num.ui<<=1;
-                    lastBit--;
-                }
-            }return;
-            case SERIAL_INTEGER_OCTAL:{
-            }break;
-            case SERIAL_INTEGER_HEX:{
-                sprintf(internalBuffer, "%X", num.ui);
-            }break;
-        }
-    }else{
-        switch(format & 0x03){
-            case SERIAL_INTEGER_DECIMAL:{
-                sprintf(internalBuffer, "%d", num.i);
-            }break;
-            case SERIAL_INTEGER_BINARY:{
-                if(num.i == 0x00){
-                    print("0000");
-                    return;
-                }
-                int lastBit = 32;
-                int bitCount;
-                if(i<0){
-                    print('-');
-                    num.i = -i;
-                }
-
-                while((num.i & 0x80000000) == 0x00){
-                    num.i <<= 1;
-                    lastBit--;
-                }
-
-                bitCount = lastBit;
-                if(lastBit%4 != 0){
-                    bitCount +=  (4-lastBit%4);
-                }
-
-                for(;lastBit!=bitCount;bitCount--){
-                    print('0');
-                }
-
-                while(lastBit>0){
-                    print(((num.i & 0x80000000) == 0x00) ? '0':'1');
-                    num.i<<=1;
-                    lastBit--;
-                }
-            }return;
-            case SERIAL_INTEGER_OCTAL:{
-            }break;
-            case SERIAL_INTEGER_HEX:{
-                if(i<0){
-                    num.i = -i;
-                    sprintf(internalBuffer, "-%X", num.i);
-                }else{
-                    sprintf(internalBuffer, "%X", num.i);
-                }
-            }break;
-        }
-    }
-    print(internalBuffer);
-}
-
-void SerialPort::print(long int i, uint8_t format){
-    if(!assertValidUART()) return;
-}
-
-void SerialPort::print(float f){
-    if(!assertValidUART()) return;
-}
-
-void SerialPort::print(double d){
-    if(!assertValidUART()) return;
-}
-
-void SerialPort::print(char c){
-    if(!assertValidUART()) return;
-    while(((*UART_FSTAT_R) & 0x20) != 0x00); //Wait until last Tx char send
-    *UART_R = c;
-}
-
-
-void SerialPort::print(const char* t){
-    if(!assertValidUART()) return;
-    while(*t){
-        print(*(t++));
-    }
-}
-
-void SerialPort::println(const char* t){
-    if(!assertValidUART()) return;
-    while(*t){
-        print(*(t++));
-    }
-    print('\r');
-    print('\n');
-}
-
-void SerialPort::printf(const char* format, ...){
-    if(!assertValidUART()) return;
-    va_list args;
-    va_start(args, format);
-
-    while(*format){
-        while(*format == '%' ){
-            switch(*(++format)){
-                case '\0':
-                    return;
-                case 'd':
-                    print((int)va_arg(args, int));
-                break;
-                case 'h':
-                    print((int)va_arg(args, int), SERIAL_INTEGER_HEX);
-                break;
-                case 'b':
-                    print((int)va_arg(args, int), SERIAL_INTEGER_BINARY);
-                case 'f':
-                    print((float)va_arg(args, float));
-                break;
-                case 'c':
-                    print((char)va_arg(args, char));
-                    break;
-                case 's':
-                    print((const char*)va_arg(args, const char*));
-                    break;
-                case 'l':
-                    if(*(format+1)=='f'){//Double
-                        print((double)va_arg(args, double));
-                        format++;
-                    }else{
-                        print((long int)va_arg(args, long int));
-                    }
-                    break;
-                case 'u':
-                    if(*(format+1)=='h'){
-                        print((int)va_arg(args, int), SERIAL_INTEGER_HEX | SERIAL_INTEGER_UNSIGNED);
-                        format++;
-                    }else if(*(format+1) == 'b'){
-                        print((int)va_arg(args, int), SERIAL_INTEGER_BINARY | SERIAL_INTEGER_UNSIGNED);
-                        format++;
-                    }else{
-                        print((int)va_arg(args, int), SERIAL_INTEGER_UNSIGNED);
-                    }
-                    break;
-                case '%':
-                    print('%');
-                    break;
-
-            }
-            format++;
-        }
-        print(*(format++));
-    }
-    va_end(args);
-
-}
-
-/* Locks the system until selected UART receives a byte
- * \return Returns the read byte as a char type
- * */
+/** Locks the system until selected UART receives a byte
+ *
+ * @return Returns the read byte as a char type
+ */
 char SerialPort::read(){
     if(!assertValidUART()) return '\0';
     while(((*UART_FSTAT_R) &  0x40) == 0x00); //Wait until Rx char
@@ -249,14 +50,16 @@ char SerialPort::read(){
 }
 
 
-/* Locks the system until selected UART receives carry return and newline characters, or until it overflows
- * \param out is the external buffer where the string is stored
- * \param lim is the maximum length of the buffer (out)
- * \param crnl is a boolean value for store the newline characters
+/** Locks the system until selected UART receives carry return and newline
+ * characters, or until it overflows
+ *
+ * @param out is the external buffer where the string is stored
+ * @param lim is the maximum length of the buffer (out)
+ * @param crnl is a boolean value for store the newline characters
  *      - true: Store '\r' and '\n' in the string as long as buffer do not overflows
  *      - false: Ignore '\r' and '\n' in the string
- * \return Returns the input buffer pointer
- * */
+ * @return Returns the input buffer pointer
+ */
 char* SerialPort::readline(char* const out, uint8_t lim, bool crnl){
     if(!assertValidUART()) return out;
     //Start a finite state machine (\variable fsm) for detecting valid carry return '\r' and
@@ -286,8 +89,14 @@ char* SerialPort::readline(char* const out, uint8_t lim, bool crnl){
     return out;
 }
 
-/*
- * */
+/**
+ * Open the Selected TM4C1294 UART if valid
+ * This function enable and configure the IO ports and maps
+ * the corresponding GPIOs to the selected UART module.
+ * UART is powered on, with 8 bits, 1 stop bit and no parity line control,
+ * working at the baudrate specified in the constructor
+ *
+ */
 void SerialPort::open(){
     if(!assertValidUART())  return;
 
@@ -321,9 +130,50 @@ void SerialPort::close(){
 }
 
 
-
-int SerialPort::assertValidUART(){
+/**
+ * TM4C1294 has 8 different UART Modules UART0 - UART7
+ * Check that valid UART was selected.
+ * @return false if UART > 8
+ *         true if UART <=7
+ */
+inline int SerialPort::assertValidUART(){
     return UART <= 7;
+}
+
+/**
+ * Overrides Print class write method
+ * @param c is the byte to send
+ * @param flags not needed
+ * @return ERROR if not valid UART, else NO ERROR
+ */
+PrintStatus SerialPort::write(uint8_t c, uint8_t flags){
+    if(!assertValidUART()) return _PRINT_STATUS_ERROR;
+    while(((*UART_FSTAT_R) & 0x20) != 0x00); //Wait until last Tx char send
+    *UART_R = c;
+    return _PRINT_STATUS_NO_ERROR;
+}
+
+/**
+ * Overrides Print class write method
+ * @param txt is the character string to send
+ * @param n is the length of the string
+ *      if n < 0, print all the string
+ * @param flags not needed
+ * @return ERROR if not valid UART, else NO ERROR
+ */
+PrintStatus SerialPort::write(const char* txt, int n, uint8_t flags){
+    if(!assertValidUART()) return _PRINT_STATUS_ERROR;
+
+    uint8_t count = 0;
+    while(*txt && (n<0 || count<n)){
+        if(count == 0 && !(*(txt+1))){  //Unique byte
+            return write(*txt);
+        }else{                          //Intermediate byte
+           write(*txt);
+        }
+        txt++;  count++;
+    }
+    return _PRINT_STATUS_NO_ERROR;
 }
 
 

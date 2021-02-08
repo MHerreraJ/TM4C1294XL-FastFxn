@@ -9,7 +9,9 @@
 #ifndef PERIPHERALS_SERIALPORT_HPP_
 #define PERIPHERALS_SERIALPORT_HPP_
 
+#include <Util/Print.hpp>
 #include <stdint.h>
+#include <stdarg.h>
 
 #define SERIAL_INTEGER_DECIMAL  0x00
 #define SERIAL_INTEGER_BINARY   0x01
@@ -27,33 +29,16 @@
 #define SERIALPORT_UART6    6
 #define SERIALPORT_UART7    7
 
-class SerialPort{
+class SerialPort:public Print{
     public:
         SerialPort();
         SerialPort(uint32_t, uint8_t=0);
 
-        void init(){
-
-        }
         void open();
         void close();
 
-        void print(int,uint8_t=0);
-        void print(long int,uint8_t=0);
-        void print(float);
-        void print(double);
-        void print(char);
-        void print(const char*);
-
-        void println(const char*);
-
-
-        void printf(const char*, ...);
-
         char read();
         char* readline(char* const, uint8_t = 20, bool = true);
-
-
 
     private:
         uint8_t UART;
@@ -63,9 +48,10 @@ class SerialPort{
         uint32_t baud;
 
         char internalBuffer[23];
+        inline int assertValidUART();
 
-        int assertValidUART();
-
+        PrintStatus write(uint8_t c, uint8_t flags=0) override;
+        PrintStatus write(const char* txt, int n, uint8_t flags)override;
 
 };
 
