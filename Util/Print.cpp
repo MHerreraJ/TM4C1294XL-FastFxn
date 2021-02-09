@@ -7,12 +7,13 @@
  */
 
 #include <Util/Print.hpp>
+#include <Util/Format.h>
 #include <stdio.h>
 
-#define _PRINT_NUMBER_FLOAT  0
-#define _PRINT_NUMBER_BIN_BASE  2
-#define _PRINT_NUMBER_DEC_BASE  10
-#define _PRINT_NUMBER_HEX_BASE  16
+#define _PRINT_NUMBER_FLOAT     'f'
+#define _PRINT_NUMBER_BIN_BASE  'b'
+#define _PRINT_NUMBER_DEC_BASE  'd'
+#define _PRINT_NUMBER_HEX_BASE  'x'
 
 /**
  * Print single character
@@ -21,7 +22,7 @@
  * @return print attempt result (ERROR or OK)
  */
 PrintStatus Print::print(char c){
-    return write(c, _PRINT_WR_SINGLE_F | _PRINT_WR_FIRSTBYTE_F);
+    return write(c, PRINT_WR_MOD_SINGLE);
 }
 
 /**
@@ -34,56 +35,9 @@ PrintStatus Print::print(char c){
  */
 
 PrintStatus Print::print(const char* txt, int n){
-    return write(txt, n, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F);
+    return write(txt, n, PRINT_WR_CTL_SNGL_TRXN);
 }
 
-/**
- * Print signed integer
- * @param i is the number to print
- * @param type (10 default) is the number base, only accept (2, 10 and 16 bases)
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::print(int i, uint8_t type){
-    union {unsigned int ui; int i;} n;
-    n.i = i;
-    return printNumber(n.ui, type, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-/**
- * Print float type number
- * @param f is the number to print
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::print(float f){
-    union {unsigned int ui; float bf;} n;
-    n.bf = f;
-    return printNumber(n.ui, _PRINT_NUMBER_FLOAT, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-/**
- * Print double type number
- * @param d is the number to print
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::print(double d){
-    union {unsigned int ui; float f;} n;
-    n.f = (float)d; //Cast to float
-    return printNumber(n.ui, _PRINT_NUMBER_FLOAT, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-
-/**
- * Print a single character, followed by end of line ("\r\n")
- *
- * @param c is the character to print
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::println(char c){
-    if(write(c, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F) == _PRINT_STATUS_ERROR){
-        return _PRINT_STATUS_ERROR;
-    }
-    return write("\r\n", -1, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | _PRINT_WR_ILAST_F);
-}
 
 /**
  * Print n characters of a string, followed by end of line ("\r\n")
@@ -94,53 +48,10 @@ PrintStatus Print::println(char c){
  * @return print attempt result (ERROR or OK)
  */
 PrintStatus Print::println(const char* txt, int n){
-    if( write(txt, n, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F) == _PRINT_STATUS_ERROR){
+    if( write(txt, n, PRINT_WR_CTL_INIT_TRXN) != _PRINT_STATUS_OK){
         return _PRINT_STATUS_ERROR;
     }
-    return write("\r\n", -1, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-/**
- * Print signed integer
- * @param i is the number to print, followed by end of line ("\r\n")
- * @param type (10 default) is the number base, only accept (2, 10 and 16 bases)
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::println(int i,uint8_t type){
-    union {unsigned int ui; int i;} n;
-    n.i = i;
-    if(printNumber(n.ui, type, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F)== _PRINT_STATUS_ERROR){
-        return _PRINT_STATUS_ERROR;
-    }
-    return write("\r\n", -1, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-/**
- * Print float type number, followed by end of line ("\r\n")
- * @param f is the number to print
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::println(float f){
-    union {unsigned int ui; float bf;} n;
-    n.bf = f;
-    if(printNumber(n.ui, _PRINT_NUMBER_FLOAT, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F) == _PRINT_STATUS_ERROR){
-            return _PRINT_STATUS_ERROR;
-    }
-    return write("\r\n", -1, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | _PRINT_WR_ILAST_F);
-}
-
-/**
- * Print double type number, followed by end of line ("\r\n")
- * @param d is the number to print
- * @return print attempt result (ERROR or OK)
- */
-PrintStatus Print::println(double d){
-    union {unsigned int ui; float f;} n;
-    n.f = (float)d; //Cast to float
-    if(printNumber(n.ui, _PRINT_NUMBER_FLOAT, true, _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_ILAST_F) == _PRINT_STATUS_ERROR){
-        return _PRINT_STATUS_ERROR;
-    }
-    return write("\r\n", -1, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | _PRINT_WR_ILAST_F);
+    return write("\r\n", -1, PRINT_WR_CTL_END_TRXN);
 }
 
 
@@ -167,59 +78,68 @@ PrintStatus Print::println(double d){
 PrintStatus Print::printf(const char* format, ...){
     va_list args;
     va_start(args, format);
-    int p_count = 0; //Count of characters/values printed
+
     PrintStatus status;
+    uint8_t startTrxn = PRINT_WR_CTL_INIT_TRXN;
 
     while(*format){ //While current char != '\0' (End of string)
         if(*format == '%' ){ //Possible format specifier
-            int numberPrintType = 0;
-            union{int i; unsigned int ui;} number;
-            bool isSigned = true;
+            format++;
 
-            uint8_t lastArg = _PRINT_WR_MULTIPLE_F | (*(++format+1) == 0 ? _PRINT_WR_ILAST_F  : 0); //Is the last argument?
+            int argFlag = isDigit(*format) ? 0 : -1;
+            union{int i; unsigned int ui; float f;} number;
+            uint8_t printTrxn = startTrxn | (*(format+1)== 0 ? PRINT_WR_CTL_END_TRXN : PRINT_WR_CTL_CONT_TRXN); //Is the last argument?
 
-            switch(*(format)){
-                case '\0': break; //Do nothing
-                case 'd': number.i = va_arg(args, int); numberPrintType = _PRINT_NUMBER_DEC_BASE; break;
-                case 'x': number.i = va_arg(args, int); numberPrintType = _PRINT_NUMBER_HEX_BASE; break;
-                case 'b': number.i = va_arg(args, int); numberPrintType = _PRINT_NUMBER_BIN_BASE; break;
-                //case 'f': print((float)va_arg(args, float)); break;
-                case '%':  case 'c': {
+            //Argument flag found
+            while(isDigit(*format)){
+                argFlag = 10*argFlag + getNumber(*(format++));
+            }
+
+            switch(*format){
+                case '\0':{
+                    status = write('%', printTrxn | PRINT_WR_STOP); //Print single %, with stop condition
+                    if(argFlag >= 0) status = _PRINT_STATUS_ERROR;
+                }break;
+                case 'd': case 'x': case 'b':{      //Print signed integer
+                    number.i = va_arg(args, int);
+                    status = printNumber(number.ui, *format, true, printTrxn);
+                }break;
+                case 'f':{                          //Print float
+                    number.f = va_arg(args, float);
+                    status = printNumber(number.ui, *format, true, printTrxn);
+                }break;
+                case '%':  case 'c': {              //Print single char
                     char car = *format != 'c' ? *format : (char)va_arg(args, int);
-                    status = write(car,  (p_count == 0? _PRINT_WR_FIRSTBYTE_F:_PRINT_WR_MEDBYTE_F)  | lastArg);
+                    status = write(car,  printTrxn);
                 }break;
-                case 's':{
-                    status = write((const char*)va_arg(args, const char*), -1, (p_count == 0? _PRINT_WR_FIRSTBYTE_F:_PRINT_WR_MEDBYTE_F)  | lastArg);
+                case 's':{                          //Print string
+                    status = write((const char*)va_arg(args, const char*), argFlag, printTrxn);
                 }break;
-                case 'u':{
-                    isSigned = false;
+                case 'u':{                          //Print unsigned integer
                     number.ui = va_arg(args, unsigned int);
-                    if(*(format+1)=='x'){
-                        numberPrintType = _PRINT_NUMBER_HEX_BASE; format++; //Readed 'x', increment format pointer
-                    }else if(*(format+1) == 'b'){
-                        numberPrintType = _PRINT_NUMBER_BIN_BASE; format++; //Readed 'b', increment format pointer
-                    }else{
-                        numberPrintType = _PRINT_NUMBER_DEC_BASE; //Default base 10 integer
+                    if(*(format+1)=='x'){           //Print unsigned hexadecimal
+                        status = printNumber(number.ui, _PRINT_NUMBER_HEX_BASE, false, printTrxn);
+                        format++;   //'x' read, increment pointer
+                    }else if(*(format+1) == 'b'){   //Print unsigned binary
+                        status = printNumber(number.ui, _PRINT_NUMBER_BIN_BASE, false, printTrxn);
+                        format++;   //'b' read, increment pointer
+                    }else{                          //Print unsigned decimal
+                        status = printNumber(number.ui, _PRINT_NUMBER_DEC_BASE, false, printTrxn);
                     }
                 }break;
-            }
-            if(numberPrintType != 0){
-                lastArg = *(format+1) == 0 ? _PRINT_WR_ILAST_F  : 0; //Is the last character
-                if(p_count == 0){
-                    status = printNumber(number.ui, numberPrintType, isSigned,
-                            _PRINT_WR_MULTIPLE_F | _PRINT_WR_FIRSTBYTE_F | lastArg);
-                }else{
-                    status = printNumber(number.ui, numberPrintType, isSigned,
-                            _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F | lastArg);
-                }
+                default:{                           //Bad formatted string
+                    write('%', printTrxn | PRINT_WR_STOP);
+                    status = _PRINT_STATUS_ERROR;
+                }break;
             }
         }else{
-            uint8_t flg = (*(format+1) == 0? _PRINT_WR_ILAST_F  : 0) | ((p_count == 0? _PRINT_WR_FIRSTBYTE_F:_PRINT_WR_MEDBYTE_F));
-            status = write(*(format), flg);
+            uint8_t printTrxn = startTrxn | (*(format+1)== 0 ? PRINT_WR_CTL_END_TRXN : PRINT_WR_CTL_CONT_TRXN);
+            status = write(*(format), printTrxn);
         }
 
-        if(status == _PRINT_STATUS_ERROR) break;
-        format++; p_count++;
+        format++;
+        startTrxn = PRINT_WR_CTL_CONT_TRXN;
+        if(status != _PRINT_STATUS_OK) break;
     }
 
     va_end(args);
@@ -238,32 +158,33 @@ PrintStatus Print::printf(const char* format, ...){
  * @return print attempt result (ERROR or OK)
  */
 PrintStatus Print::printBinOrHex(unsigned int i, uint8_t iType, uint8_t flags){
-    PrintStatus status = write('0', (flags & ~ _PRINT_WR_POSBYTE_M) | _PRINT_WR_FIRSTBYTE_F);
-    if(status == _PRINT_STATUS_ERROR) return status;
+    PrintStatus status = write('0', flags & ~PRINT_WR_STOP); //Prevent stop transaction
+    if(status != _PRINT_STATUS_OK) return status;
 
-    char sep;
     int groupSize, binCount, iShift, mask, bitShift, tMask, tShift, rShift;
 
     if(iType == _PRINT_NUMBER_HEX_BASE){
-        sep = 'x'; groupSize = 2; binCount =  2*sizeof(unsigned int);
+        groupSize = 2; binCount =  2*sizeof(unsigned int);
         iShift = (sizeof(unsigned int) - 1) << 3; mask = 0xFF << iShift;
         bitShift = 8; tMask = 0xF0 << iShift; tShift = 4; rShift = 4;
     }else{
-        sep = 'b'; groupSize = 4; binCount = 8*sizeof(unsigned int);
+        groupSize = 4; binCount = 8*sizeof(unsigned int);
         iShift = 4 + ((sizeof(unsigned int) - 1) << 3); mask = 0xF << iShift;
         bitShift = 4; tMask = 0x8 << iShift; tShift = 3; rShift = 1;
     }
 
-    status = write(sep, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F);
-    if(status == _PRINT_STATUS_ERROR) return status;
+    flags &= ~PRINT_WR_START; //Prevent start transaction since handled by first write
+
+    status = write(iType, PRINT_WR_CTL_CONT_TRXN); //Continue transaction
+    if(status != _PRINT_STATUS_OK) return status;
 
     //If i value equals zero, print as many zeros as the format groupsize
     if(i == 0) {
-        while(--groupSize > 1){
-            status = write('0', _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F);
-            if(status == _PRINT_STATUS_ERROR) return status;
+        while(groupSize-- > 1){
+            status = write('0', PRINT_WR_CTL_CONT_TRXN); //Continue transaction
+            if(status != _PRINT_STATUS_OK) return status;
         }
-        return write('0', (flags & ~_PRINT_WR_POSBYTE_M) | _PRINT_WR_LASTBYTE_F);
+        return write('0', flags);
     }
 
     //Find group containing the MSB
@@ -278,9 +199,9 @@ PrintStatus Print::printBinOrHex(unsigned int i, uint8_t iType, uint8_t flags){
         i <<= rShift;
 
         if(binCount - 1 == 0){ //Last char to print
-            status = write(toWrite, (flags & ~ _PRINT_WR_POSBYTE_M) | _PRINT_WR_LASTBYTE_F);
+            status = write(toWrite, flags);
         }else{
-            status = write(toWrite, _PRINT_WR_MULTIPLE_F | _PRINT_WR_MEDBYTE_F);
+            status = write(toWrite, PRINT_WR_CTL_CONT_TRXN);
         }
     }
     return status;
@@ -295,6 +216,18 @@ PrintStatus Print::printBinOrHex(unsigned int i, uint8_t iType, uint8_t flags){
  */
 PrintStatus Print::printDecimal(unsigned int i, uint8_t flags){
     sprintf(buffer, "%u", i);
+    return write(buffer, -1, flags);
+}
+
+/**
+ * Function for printing float number
+ * @param f is the number to print
+ * @param flags are the print configurations handled by the write methods
+ * overridden in inherited classes
+ * @return print attempt result (ERROR or OK)
+ */
+PrintStatus Print::printFloat(float f, uint8_t flags){
+    sprintf(buffer, "%0.4f", f);
     return write(buffer, -1, flags);
 }
 
@@ -315,20 +248,16 @@ PrintStatus Print::printNumber(unsigned int i, uint8_t iType, bool iSigned, uint
     n.ui = i;
 
     if(iType == _PRINT_NUMBER_FLOAT){
-        //TODO
-        return 0;
+        return printFloat(n.f, flags);
     }
 
     //If signed integer is less than 0 then print '-' character
     if(iSigned && (n.i < 0)){
-        if((flags & _PRINT_WR_POSBYTE_M) == _PRINT_WR_FIRSTBYTE_F){
-            flags |= _PRINT_WR_MEDBYTE_F;
-            status = write('-', _PRINT_WR_FIRSTBYTE_F | _PRINT_WR_MULTIPLE_F);
-        }else{
-            status = write('-', _PRINT_WR_MEDBYTE_F | _PRINT_WR_MULTIPLE_F);
-        }
-        if(status == _PRINT_STATUS_ERROR)   return status;
-        n.i = -n.i; //Since '-' printed, convert to positive number for assert unsigned int type
+        status = write('-', flags & ~PRINT_WR_STOP); //Prevent stop transaction
+        flags &= ~PRINT_WR_START; //Prevent for start trxn again
+
+        if(status != _PRINT_STATUS_OK)   return status;
+        n.i = -n.i; //Since '-' printed, invert sign for assert unsigned int type
     }
 
     //Map integer to print method

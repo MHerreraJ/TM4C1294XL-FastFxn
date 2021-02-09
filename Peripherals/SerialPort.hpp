@@ -47,7 +47,6 @@ class SerialPort:public Print{
         uint32_t* UART_FSTAT_R;
         uint32_t baud;
 
-        char internalBuffer[23];
         inline int assertValidUART();
 
         PrintStatus write(uint8_t c, uint8_t flags=0) override;

@@ -16,8 +16,8 @@
 static const uint8_t UART_PORT_OFF[] = {0, 1, 0, 0, 0, 2, 13, 2}; //GPIO Base offset
 static const uint8_t UART_RXIO_B[] = {0, 0, 6, 4, 2, 6, 0, 4}; //RXIO Bit, TX = RXIO + 1
 
-/** Default SerialPort constructor
- *
+/**
+ * Default SerialPort constructor
  * UART0 Selected, at 9600 bauds
  */
 SerialPort::SerialPort(){
@@ -26,8 +26,8 @@ SerialPort::SerialPort(){
     open();
 }
 
-/** SerialPort Constructor
- *
+/**
+ * SerialPort Constructor
  * @param baudrate is the speed at which UART will work
  * @param uart is the uart module to use (0 to 7)
  */
@@ -39,8 +39,8 @@ SerialPort::SerialPort(uint32_t baudrate, uint8_t uart){
 }
 
 
-/** Locks the system until selected UART receives a byte
- *
+/**
+ * Locks the system until selected UART receives a byte
  * @return Returns the read byte as a char type
  */
 char SerialPort::read(){
@@ -50,7 +50,8 @@ char SerialPort::read(){
 }
 
 
-/** Locks the system until selected UART receives carry return and newline
+/**
+ * Locks the system until selected UART receives carry return and newline
  * characters, or until it overflows
  *
  * @param out is the external buffer where the string is stored
@@ -133,6 +134,7 @@ void SerialPort::close(){
 /**
  * TM4C1294 has 8 different UART Modules UART0 - UART7
  * Check that valid UART was selected.
+ *
  * @return false if UART > 8
  *         true if UART <=7
  */
@@ -142,6 +144,7 @@ inline int SerialPort::assertValidUART(){
 
 /**
  * Overrides Print class write method
+ *
  * @param c is the byte to send
  * @param flags not needed
  * @return ERROR if not valid UART, else NO ERROR
@@ -150,11 +153,12 @@ PrintStatus SerialPort::write(uint8_t c, uint8_t flags){
     if(!assertValidUART()) return _PRINT_STATUS_ERROR;
     while(((*UART_FSTAT_R) & 0x20) != 0x00); //Wait until last Tx char send
     *UART_R = c;
-    return _PRINT_STATUS_NO_ERROR;
+    return _PRINT_STATUS_OK;
 }
 
 /**
  * Overrides Print class write method
+ *
  * @param txt is the character string to send
  * @param n is the length of the string
  *      if n < 0, print all the string
@@ -173,7 +177,7 @@ PrintStatus SerialPort::write(const char* txt, int n, uint8_t flags){
         }
         txt++;  count++;
     }
-    return _PRINT_STATUS_NO_ERROR;
+    return _PRINT_STATUS_OK;
 }
 
 
